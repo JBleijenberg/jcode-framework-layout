@@ -60,18 +60,17 @@ class Template extends DataObject
     public function render()
     {
         if ($this->getTemplate()) {
-            $config = Application::objectManager()->get('Jcode\Application\Config');
-
+            /** @var \Jcode\Application\Config $config */
+            $config       = Application::objectManager()->get('\Jcode\Application\Config');
             $templateArgs = explode('::', $this->getTemplate());
+            $module       = $config->getModule(current($templateArgs));
 
-            $module = $config->getModule(current($templateArgs));
+            $path = array_map('ucfirst', explode('/', next($templateArgs)));
 
-            next($templateArgs);
-
-            if (file_exists($module->getModulePath() . DS . 'View' . DS . 'Template' . DS . Application::env()->getConfig('layout/name') . DS . current($templateArgs))) {
-                $file = $module->getModulePath() . DS . 'View' . DS . 'Template' . DS . Application::env()->getConfig('layout/name') . DS . current($templateArgs);
+            if (file_exists($module->getModulePath() . DS . 'View' . DS . 'Template' . DS . Application::env()->getConfig('layout') . DS . implode('/', $path))) {
+                $file = $module->getModulePath() . DS . 'View' . DS . 'Template' . DS . Application::env()->getConfig('layout') . DS . implode('/', $path);
             } else {
-                $file = $module->getModulePath() . DS . 'View' . DS . 'Template' . DS . current($templateArgs);
+                $file = $module->getModulePath() . DS . 'View' . DS . 'Template' . DS . implode('/', $path);
             }
 
             include $file;
