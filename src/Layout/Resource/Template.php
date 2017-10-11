@@ -23,9 +23,9 @@
 namespace Jcode\Layout\Resource;
 
 use Jcode\Application;
-use Jcode\Object;
+use Jcode\DataObject;
 
-class Template extends Object
+class Template extends DataObject
 {
 
     protected $template;
@@ -144,7 +144,7 @@ class Template extends Object
     /**
      * Get helper
      *
-     * @return \Jcode\Resource\Helper
+     * @return object|\Jcode\Resource\Helper
      * @throws \Exception
      */
     public function getHelper()
