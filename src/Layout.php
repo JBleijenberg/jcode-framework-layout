@@ -111,17 +111,23 @@ class Layout
                     $origBlock->setClass($parentBlock->getClass());
                 }
 
-                if ($parent->getBlockCollection()) {
+                if ($parentBlock->getBlockCollection()) {
                     $blockCollection = ($origBlock->getBlockCollection())
                         ? $origBlock->getBlockCollection()
                         : Application::objectManager()->get('\Jcode\DataObject\Collection');
 
                     foreach ($parentBlock->getBlockCollection() as $child) {
-                        $origCollection->addItem($child, $child->getName());
+                        $blockCollection->addItem($child, $child->getName());
                     }
 
                     $origBlock->setBlockCollection($blockCollection);
                 }
+
+                if ($parentBlock->getMethods()) {
+                    $origBlock->setMethods(array_merge_recursive($parentBlock->getMethods(), $origBlock->getMethods()));
+                }
+
+                $parentBlock->setNoOutput(true);
             }
         }
 
@@ -183,6 +189,7 @@ class Layout
         $blockClass = Application::objectManager()->get($class);
 
         $blockClass->setName($block->getName());
+        $blockClass->setNoOutput($block->getNoOutput());
 
         if ($block->getTemplate()) {
             $blockClass->setTemplate($block->getTemplate());

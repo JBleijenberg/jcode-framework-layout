@@ -59,7 +59,7 @@ class Template extends DataObject
      */
     public function render()
     {
-        if ($this->getTemplate()) {
+        if ($this->getTemplate() && $this->getNoOutput() !== true) {
             /** @var \Jcode\Application\Config $config */
             $config       = Application::objectManager()->get('\Jcode\Application\Config');
             $templateArgs = explode('::', $this->getTemplate());
@@ -85,10 +85,8 @@ class Template extends DataObject
     {
         $layout = Application::registry('current_layout');
 
-        if ($element = $layout->getData($reference)) {
-            foreach ($element->getItemById('child_html') as $childHtml) {
-                $this->renderBlock($childHtml, ['reference' => $reference]);
-            }
+        if (($referenceObject = $layout->getReferenceCollection()->getItemByColumnValue('name', $reference))) {
+            Application::objectManager()->get('\Jcode\Layout\Layout')->parseReference($referenceObject);
         }
     }
 
