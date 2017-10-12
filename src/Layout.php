@@ -245,16 +245,15 @@ class Layout
                                 $referenceObject->setExtends((string)$reference['extends']);
                             }
 
+                            $blockCollection = Application::objectManager()->get('\Jcode\DataObject\Collection');
 
                             if ($reference->block) {
-                                $blockCollection = Application::objectManager()->get('\Jcode\DataObject\Collection');
-
                                 foreach ($reference->block as $block) {
                                     $blockCollection->addItem($this->convertBlockXmlToObject($block), (string)$block['name']);
                                 }
-
-                                $referenceObject->setBlockCollection($blockCollection);
                             }
+
+                            $referenceObject->setBlockCollection($blockCollection);
 
                             $referenceCollection->addItem($referenceObject, $referenceObject->getName());
                         }
@@ -293,16 +292,16 @@ class Layout
             $blockObject->setExtends((string)$block['extends']);
         }
 
-        if (isset($block->block)) {
-            /** @var Collection $blockCollection */
-            $blockCollection = Application::objectManager()->get('\Jcode\DataObject\Collection');
+        /** @var Collection $blockCollection */
+        $blockCollection = Application::objectManager()->get('\Jcode\DataObject\Collection');
 
+        if (isset($block->block)) {
             foreach ($block->block as $child) {
                 $blockCollection->addItem($this->convertBlockXmlToObject($child), (string)$child['name']);
             }
-
-            $blockObject->setBlockCollection($blockCollection);
         }
+
+        $blockObject->setBlockCollection($blockCollection);
 
         if (isset($block->method)) {
             $methods = [];
