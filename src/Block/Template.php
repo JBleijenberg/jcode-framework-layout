@@ -138,6 +138,11 @@ class Template extends DataObject
         return $this->getHelper()->translate(func_get_args());
     }
 
+    public function getUrl($path, $parameters = []) :string
+    {
+        return $this->getHelper()->getUrl($path, $parameters);
+    }
+
     /**
      * Get helper
      *

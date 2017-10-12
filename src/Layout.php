@@ -132,8 +132,6 @@ class Layout
             }
         }
 
-
-
         return $this;
     }
 
