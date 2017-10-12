@@ -67,36 +67,29 @@ class Layout
         }
 
         foreach ($this->paths as $path) {
-            foreach($path->getReferenceCollection() as $reference) {
-                if ($reference->getExtends()) {
-                    $d = array_filter($this->paths, function ($p) use ($reference) {
-                        /** @var Collection $p */
-                       if ($p->getReferenceCollection()->getItemByColumnValue('name', $reference->getExtends())) {
-                           return true;
-                       }
-                    });
-
-                    $parent = current($d);
-
-                    $parentReference = $parent->getReferenceCollection()->getItemByColumnValue('name', $reference->getExtends());
-
-                    foreach ($parentReference->getBlockCollection() as $block) {
-                        $reference->getBlockCollection()->addItem($block, $block->getName(), false);
-                    }
-
-                    $reference->setName($parentReference->getName());
-                }
-
-                foreach ($reference->getBlockCollection() as $block) {
-                    $this->storeBlocks($block);
-                }
-            }
-
             if ($path->getExtends()) {
                 foreach ($this->paths[$path->getExtends()]->getReferenceCollection() as $parentReference) {
                     if (!$path->getReferenceCollection()->getItemByColumnValue('name', $parentReference->getName())) {
                         $path->getReferenceCollection()->addItem($parentReference, $parentReference->getName());
                     }
+                }
+            }
+
+            foreach($path->getReferenceCollection() as $reference) {
+                if ($reference->getExtends()) {
+                    if (($parentReference = $path->getReferenceCollection()->getItemByColumnValue('name', $reference->getExtends()))) {
+                        foreach ($parentReference->getBlockCollection() as $block) {
+                            $reference->getBlockCollection()->addItem($block, $block->getName(), false);
+                        }
+
+                        $reference->setName($parentReference->getName());
+                    } else {
+                        throw new \Exception("Cannot extend from parent {$reference->getExtends()}. Is it in your request scope?");
+                    }
+                }
+
+                foreach ($reference->getBlockCollection() as $block) {
+                    $this->storeBlocks($block);
                 }
             }
         }
