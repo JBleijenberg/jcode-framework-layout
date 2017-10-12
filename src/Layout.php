@@ -91,6 +91,14 @@ class Layout
                     $this->storeBlocks($block);
                 }
             }
+
+            if ($path->getExtends()) {
+                foreach ($this->paths[$path->getExtends()]->getReferenceCollection() as $parentReference) {
+                    if (!$path->getReferenceCollection()->getItemByColumnValue('name', $parentReference->getName())) {
+                        $path->getReferenceCollection()->addItem($parentReference, $parentReference->getName());
+                    }
+                }
+            }
         }
 
         foreach ($this->blocks as $origBlock) {
@@ -130,6 +138,8 @@ class Layout
                 $parentBlock->setNoOutput(true);
             }
         }
+
+
 
         return $this;
     }
@@ -226,6 +236,10 @@ class Layout
                     $referenceCollection = Application::objectManager()->get('\Jcode\DataObject\Collection');
 
                     $requestObject->setPath((string)$request['path']);
+
+                    if (isset($request['extends'])) {
+                        $requestObject->setExtends((string)$request['extends']);
+                    }
 
                     if ($request->reference) {
                         foreach ($request->reference as $reference) {
