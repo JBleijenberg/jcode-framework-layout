@@ -180,7 +180,7 @@ class Layout
      * @internal param SimpleXMLElement $element
      *
      */
-    protected function getLayoutBlock(DataObject $block)
+    public function getLayoutBlock(DataObject $block)
     {
         $class = explode('::', $block->getClass());
         $subs  = array_map('ucfirst', explode('/', $class[1]));
@@ -203,6 +203,8 @@ class Layout
                 }
             }
         }
+
+        $blockClass->setBlockCollection($block->getBlockCollection());
 
         return $blockClass;
     }

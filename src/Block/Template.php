@@ -24,6 +24,7 @@ namespace Jcode\Layout\Block;
 
 use Jcode\Application;
 use Jcode\DataObject;
+use Jcode\Layout\Layout;
 
 class Template extends DataObject
 {
@@ -94,32 +95,20 @@ class Template extends DataObject
      * @param $name
      * @return mixed|null
      */
-    public function getChildHtml($name)
+    public function getChildBlock($name)
     {
-        $layout =  Application::registry('current_layout')->getData($this->getReference());
+        $child  = $this->getBlockCollection()->getItemByColumnValue('name', $name);
 
-        foreach ($layout->getItemById('child_html') as $block) {
-            if ($block->getName() == $this->getName()) {
-                return $this->renderBlock($block->getData('child_html')->getItemById($name));
-            }
+        /** @var Layout $layout */
+        $layout = Application::objectManager()->get('\Jcode\Layout\Layout');
+
+        $block = $layout->getLayoutBlock($child);
+
+        if ($block instanceof Template) {
+            return $block->render();
         }
 
         return null;
-    }
-
-    /**
-     * @param $block
-     * @param array $args
-     * @return mixed
-     * @throws \Exception
-     */
-    protected function renderBlock($block, array $args = [])
-    {
-        foreach ($args as $key => $val) {
-            $block->setData($key, $val);
-        }
-
-        $block->render();
     }
 
     /**

@@ -23,7 +23,6 @@
 namespace Jcode\Layout\Block;
 
 use Jcode\Application;
-use Jcode\Layout\Resource\Template;
 
 class Messages extends Template
 {
@@ -37,16 +36,17 @@ class Messages extends Template
     /**
      * Retrieve messages from all registered sessions
      *
-     * @throws \Exception
+     * @param bool $purge
+     * @return array
      */
-    public function getMessages()
+    public function getMessages($purge = true)
     {
         $messages = [];
 
         foreach ($this->session->getRegisteredNamespaces() as $sessionClass) {
             $session = Application::objectManager()->get($sessionClass);
 
-            foreach ($session->getMessages() as $message) {
+            foreach ($session->getMessages($purge) as $message) {
                 $messages[] = $message;
             };
         }
