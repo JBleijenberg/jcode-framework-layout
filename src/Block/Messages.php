@@ -28,8 +28,8 @@ class Messages extends Template
 {
 
     /**
-     * @inject \Jcode\Resource\Session
-     * @var \Jcode\Resource\Session
+     * @inject \Jcode\Model\Session
+     * @var \Jcode\Model\Session
      */
     protected $session;
 

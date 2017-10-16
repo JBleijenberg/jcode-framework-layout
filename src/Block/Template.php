@@ -140,6 +140,6 @@ class Template extends DataObject
      */
     public function getHelper()
     {
-        return Application::objectManager()->get('Jcode\Resource\Helper');
+        return Application::objectManager()->get('Jcode\Model\Helper');
     }
 }
