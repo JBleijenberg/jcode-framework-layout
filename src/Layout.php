@@ -24,6 +24,7 @@ use Jcode\Application;
 use Jcode\DataObject;
 use Jcode\DataObject\Collection;
 use SimpleXMLElement;
+use Symfony\Component\Finder\Finder;
 
 class Layout
 {
@@ -211,13 +212,18 @@ class Layout
 
     protected function collectLayoutXml()
     {
-        $files = array_merge(
-            glob(BP . DS . 'application' . DS . '*' . DS . '*' . DS . 'View' . DS . 'Layout' . DS . '*.xml'),
-            glob(BP . DS . 'application' . DS . '*' . DS . '*' . DS . 'View' . DS . 'Layout' . DS . Application::env()->getConfig('layout') . DS . '*.xml')
-        );
+        $finder = new Finder();
 
-        foreach ($files as $file) {
-            $xml = simplexml_load_file($file);
+        $finder
+            ->files()
+            ->ignoreUnreadableDirs()
+            ->followLinks()
+            ->name('*.xml')
+            ->depth('> 2')
+            ->in(BP . DS . 'application');
+
+        foreach ($finder as $file) {
+            $xml = simplexml_load_file($file->getPathname());
 
             foreach ($xml->request as $request) {
                 if (!empty($request['path'])) {
