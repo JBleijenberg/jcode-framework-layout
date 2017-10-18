@@ -74,6 +74,8 @@ class Template extends DataObject
                 $file = $module->getModulePath() . DS . 'View' . DS . 'Template' . DS . implode('/', $path);
             }
 
+            ob_start();
+
             include $file;
         }
     }
