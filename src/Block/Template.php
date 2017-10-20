@@ -62,16 +62,20 @@ class Template extends DataObject
     {
         if ($this->getTemplate() && $this->getNoOutput() !== true) {
             /** @var \Jcode\Application\Config $config */
-            $config       = Application::objectManager()->get('\Jcode\Application\Config');
-            $templateArgs = explode('::', $this->getTemplate());
-            $module       = $config->getModule(current($templateArgs));
+            $config                  = Application::objectManager()->get('\Jcode\Application\Config');
+            list($moduleName, $path) = explode('::', $this->getTemplate());
+            $module                  = $config->getModule($moduleName);
 
-            $path = array_map('ucfirst', explode('/', next($templateArgs)));
+            $path = array_map('ucfirst', explode('/', $path));
 
             if (file_exists($module->getModulePath() . DS . 'View' . DS . 'Template' . DS . Application::env()->getConfig('layout') . DS . implode('/', $path))) {
                 $file = $module->getModulePath() . DS . 'View' . DS . 'Template' . DS . Application::env()->getConfig('layout') . DS . implode('/', $path);
             } else {
                 $file = $module->getModulePath() . DS . 'View' . DS . 'Template' . DS . implode('/', $path);
+            }
+
+            if (Application::showTemplateHints()) {
+                echo sprintf('<div style="background-color: red;">%s::%s</div><br/>', get_called_class(), $file);
             }
 
             ob_start();
