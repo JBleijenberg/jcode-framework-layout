@@ -68,6 +68,8 @@ class Layout
         }
 
         foreach ($this->paths as $path) {
+            $this->blocks[$path->getPath()] = [];
+
             if ($path->getExtends()) {
                 foreach ($this->paths[$path->getExtends()]->getReferenceCollection() as $parentReference) {
                     if (!$path->getReferenceCollection()->getItemByColumnValue('name', $parentReference->getName())) {
@@ -90,46 +92,44 @@ class Layout
                 }
 
                 foreach ($reference->getBlockCollection() as $block) {
-                    $this->storeBlocks($block);
+                    $this->storeBlocks($path, $block);
                 }
             }
-        }
 
-        foreach ($this->blocks as $origBlock) {
-            if ($origBlock->getExtends()) {
-                if (array_key_exists($origBlock->getExtends(), $this->blocks)) {
+            foreach ($this->blocks[$path->getPath()] as $origBlock) {
+                if ($origBlock->getExtends()) {
+                    if (array_key_exists($origBlock->getExtends(), $this->blocks[$path->getPath()])) {
+                        $parentBlock = $this->blocks[$path->getPath()][$origBlock->getExtends()];
 
-                } else {
-                    throw new \Exception("Cannot extend block '{$origBlock->getExtends()}. Block does not exist.");
-                }
+                        if (!$origBlock->getTemplate()) {
+                            $origBlock->setTemplate($parentBlock->getTemplate());
+                        }
 
-                $parentBlock = $this->blocks[$origBlock->getExtends()];
+                        if (!$origBlock->getClass()) {
+                            $origBlock->setClass($parentBlock->getClass());
+                        }
 
-                if (!$origBlock->getTemplate()) {
-                    $origBlock->setTemplate($parentBlock->getTemplate());
-                }
+                        if ($parentBlock->getBlockCollection()) {
+                            $blockCollection = ($origBlock->getBlockCollection())
+                                ? $origBlock->getBlockCollection()
+                                : Application::objectManager()->get('\Jcode\DataObject\Collection');
 
-                if (!$origBlock->getClass()) {
-                    $origBlock->setClass($parentBlock->getClass());
-                }
+                            foreach ($parentBlock->getBlockCollection() as $child) {
+                                $blockCollection->addItem($child, $child->getName());
+                            }
 
-                if ($parentBlock->getBlockCollection()) {
-                    $blockCollection = ($origBlock->getBlockCollection())
-                        ? $origBlock->getBlockCollection()
-                        : Application::objectManager()->get('\Jcode\DataObject\Collection');
+                            $origBlock->setBlockCollection($blockCollection);
+                        }
 
-                    foreach ($parentBlock->getBlockCollection() as $child) {
-                        $blockCollection->addItem($child, $child->getName());
+                        if ($parentBlock->getMethods()) {
+                            $origBlock->setMethods(array_merge_recursive($parentBlock->getMethods(), $origBlock->getMethods()));
+                        }
+
+                        $parentBlock->setNoOutput(true);
+                    } else {
+                        throw new \Exception("Cannot extend block '{$origBlock->getExtends()}. Block does not exist.");
                     }
-
-                    $origBlock->setBlockCollection($blockCollection);
                 }
-
-                if ($parentBlock->getMethods()) {
-                    $origBlock->setMethods(array_merge_recursive($parentBlock->getMethods(), $origBlock->getMethods()));
-                }
-
-                $parentBlock->setNoOutput(true);
             }
         }
 
@@ -139,21 +139,26 @@ class Layout
     /**
      * Store blocks in their own array for easy manipulation.
      *
+     * @param DataObject $path
      * @param DataObject $block
      * @return $this
      * @throws \Exception
      */
-    protected function storeBlocks(DataObject $block)
+    protected function storeBlocks(DataObject $path, DataObject $block)
     {
         if (!$block->getName()) {
             throw new \Exception('Block element requires a name to be set');
         }
 
-        $this->blocks[$block->getName()] = $block;
+        if (array_key_exists($block->getName(), $this->blocks[$path->getPath()])) {
+            return $this;
+        }
+
+        $this->blocks[$path->getPath()][$block->getName()] = $block;
 
         if ($block->getBlockCollection()) {
             foreach ($block->getBlockCollection() as $child) {
-                $this->storeBlocks($child);
+                $this->storeBlocks($path, $child);
             }
         }
 
@@ -166,7 +171,7 @@ class Layout
      * @param DataObject $reference
      * @return $this
      */
-    public function parseReference(DataObject$reference)
+    public function parseReference(DataObject $reference)
     {
         foreach ($reference->getBlockCollection() as $block) {
             $this->getLayoutBlock($block)->render();
@@ -184,6 +189,9 @@ class Layout
     public function getLayoutBlock(DataObject $block)
     {
         $class = explode('::', $block->getClass());
+        if (count($class) == 1) {
+            debug($block);
+        }
         $subs  = array_map('ucfirst', explode('/', $class[1]));
         $class = '\\' . str_replace('_', '\\', $class[0]) . '\Block\\' . implode('\\', $subs);
 
