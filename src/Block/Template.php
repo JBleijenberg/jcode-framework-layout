@@ -99,9 +99,10 @@ class Template extends DataObject
 
     /**
      * @param $name
+     * @param array $args
      * @return mixed|null
      */
-    public function getChildBlock($name)
+    public function getChildBlock($name, array $args = [])
     {
         $child  = $this->getBlockCollection()->getItemByColumnValue('name', $name);
 
@@ -111,6 +112,11 @@ class Template extends DataObject
         $block = $layout->getLayoutBlock($child);
 
         if ($block instanceof Template) {
+
+            foreach ($args as $key => $value) {
+                $block->setData($key, $value);
+            }
+
             return $block->render();
         }
 
