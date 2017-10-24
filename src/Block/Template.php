@@ -25,11 +25,18 @@ namespace Jcode\Layout\Block;
 use Jcode\Application;
 use Jcode\DataObject;
 use Jcode\Layout\Layout;
+use Jcode\Layout\Model\Request;
 
 class Template extends DataObject
 {
 
     protected $template;
+
+    protected $name;
+
+    protected $output = true;
+
+    protected $children = [];
 
     public function setTemplate($template)
     {
@@ -53,6 +60,35 @@ class Template extends DataObject
         return true;
     }
 
+    public function getName()
+    {
+        return $this->name;
+    }
+
+    public function setName($name)
+    {
+        $this->name = $name;
+    }
+
+    public function setOutput(Bool $bool)
+    {
+        $this->output = $bool;
+
+        return $this;
+    }
+
+    public function getOutput() :Bool
+    {
+        return $this->output;
+    }
+
+    public function setChildren(array $children)
+    {
+        $this->children = $children;
+
+        return $this;
+    }
+
     /**
      * @internal param $blockname
      * @internal param array $vars
@@ -60,7 +96,7 @@ class Template extends DataObject
      */
     public function render()
     {
-        if ($this->getTemplate() && $this->getNoOutput() !== true) {
+        if ($this->getTemplate() && $this->getOutput() == true) {
             /** @var \Jcode\Application\Config $config */
             $config                  = Application::objectManager()->get('\Jcode\Application\Config');
             list($moduleName, $path) = explode('::', $this->getTemplate());
@@ -85,16 +121,16 @@ class Template extends DataObject
     }
 
     /**
-     * @param $reference
-     * @return mixed
+     * @param $name
+     * @return void
+     * @internal param $reference
      */
-    public function getReferenceHtml($reference)
+    public function getReferenceHtml($name) :void
     {
+        /** @var Request $layout */
         $layout = Application::registry('current_layout');
 
-        if (($referenceObject = $layout->getReferenceCollection()->getItemByColumnValue('name', $reference))) {
-            Application::objectManager()->get('\Jcode\Layout\Layout')->parseReference($referenceObject);
-        }
+        $layout->getReference($name)->render();
     }
 
     /**
@@ -104,20 +140,10 @@ class Template extends DataObject
      */
     public function getChildBlock($name, array $args = [])
     {
-        $child  = $this->getBlockCollection()->getItemByColumnValue('name', $name);
+        if (array_key_exists($name, $this->children)) {
+            $child = $this->children[$name];
 
-        /** @var Layout $layout */
-        $layout = Application::objectManager()->get('\Jcode\Layout\Layout');
-
-        $block = $layout->getLayoutBlock($child);
-
-        if ($block instanceof Template) {
-
-            foreach ($args as $key => $value) {
-                $block->setData($key, $value);
-            }
-
-            return $block->render();
+            return $child->render($args);
         }
 
         return null;

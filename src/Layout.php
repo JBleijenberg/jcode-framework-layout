@@ -21,8 +21,10 @@
 namespace Jcode\Layout;
 
 use Jcode\Application;
-use Jcode\DataObject;
 use Jcode\DataObject\Collection;
+use Jcode\Layout\Model\Block;
+use Jcode\Layout\Model\Reference;
+use Jcode\Layout\Model\Request;
 use SimpleXMLElement;
 use Symfony\Component\Finder\Finder;
 
@@ -31,9 +33,10 @@ class Layout
 
     protected $isSharedInstance = true;
 
-    protected $paths = [];
-
-    protected $blocks = [];
+    /**
+     * @var Collection
+     */
+    protected $layout;
 
     /**
      * @param $element
@@ -51,11 +54,7 @@ class Layout
 
         $this->buildLayout();
 
-        if (array_key_exists($element, $this->paths)) {
-            return $this->paths[$element];
-        }
-
-        return null;
+        return $this->layout->getItemById($element);
     }
 
     /**
@@ -63,164 +62,90 @@ class Layout
      */
     protected function buildLayout()
     {
-        if (empty($this->paths)) {
-            $this->collectLayoutXml();
-        }
+        if (empty($this->layout)) {
+            /** @var Collection $layout */
+            $layout   = Application::objectManager()->get('\Jcode\DataObject\Collection');
+            $requests = $this->collectLayoutXml();
 
-        foreach ($this->paths as $path) {
-            $this->blocks[$path->getPath()] = [];
+            foreach ($this->collectLayoutXml() as $request) {
+                /** @var Request $request */
+                if ($request->getExtends()) {
+                    /** @var Request $parentRequest */
+                    $parentRequest = $requests[$request->getExtends()];
 
-            if ($path->getExtends()) {
-                foreach ($this->paths[$path->getExtends()]->getReferenceCollection() as $parentReference) {
-                    if (!$path->getReferenceCollection()->getItemByColumnValue('name', $parentReference->getName())) {
-                        $path->getReferenceCollection()->addItem($parentReference, $parentReference->getName());
-                    }
-                }
-            }
-
-            foreach($path->getReferenceCollection() as $reference) {
-                if ($reference->getExtends()) {
-                    if (($parentReference = $path->getReferenceCollection()->getItemByColumnValue('name', $reference->getExtends()))) {
-                        foreach ($parentReference->getBlockCollection() as $block) {
-                            $reference->getBlockCollection()->addItem($block, $block->getName(), false);
-                        }
-
-                        $reference->setName($parentReference->getName());
-                    } else {
-                        throw new \Exception("Cannot extend from parent {$reference->getExtends()}. Is it in your request scope?");
+                    /** @var Reference $reference */
+                    foreach ($parentRequest->getReferences() as $reference) {
+                        $request->addReference(clone $reference);
                     }
                 }
 
-                foreach ($reference->getBlockCollection() as $block) {
-                    $this->storeBlocks($path, $block);
+                /** @var Reference $reference */
+                foreach ($request->getReferences() as $reference) {
+                    if (!$request->referenceExists($reference)) {
+                        continue;
+                    }
+
+                    if ($reference->getExtends()) {
+                        $newReference = clone $request->getReference($reference->getExtends());
+
+                        foreach ($reference->getBlocks() as $block) {
+                            $newReference->addBlock($block);
+                        }
+
+                        $request->removeReference($request->getReference($reference->getExtends()));
+                        $request->removeReference($reference);
+                        $request->addReference($newReference);
+                    }
+
+                    if ($reference->getExtends()) {
+                        $request->removeReference($reference);
+                    }
                 }
-            }
 
-            foreach ($this->blocks[$path->getPath()] as $origBlock) {
-                if ($origBlock->getExtends()) {
-                    if (array_key_exists($origBlock->getExtends(), $this->blocks[$path->getPath()])) {
-                        $parentBlock = $this->blocks[$path->getPath()][$origBlock->getExtends()];
-
-                        if (!$origBlock->getTemplate()) {
-                            $origBlock->setTemplate($parentBlock->getTemplate());
+                foreach ($request->getReferences() as $reference) {
+                    /** @var Block $block */
+                    foreach ($reference->getBlocks() as $block) {
+                        if (!$reference->blockExists($block)) {
+                            continue;
                         }
 
-                        if (!$origBlock->getClass()) {
-                            $origBlock->setClass($parentBlock->getClass());
-                        }
+                        if ($block->getExtends()) {
+                            $newBlock = $reference->getBlock($block->getExtends());
 
-                        if ($parentBlock->getBlockCollection()) {
-                            $blockCollection = ($origBlock->getBlockCollection())
-                                ? $origBlock->getBlockCollection()
-                                : Application::objectManager()->get('\Jcode\DataObject\Collection');
-
-                            foreach ($parentBlock->getBlockCollection() as $child) {
-                                $blockCollection->addItem($child, $child->getName());
+                            if ($block->getClass()) {
+                                $newBlock->setClass($block->getClass());
                             }
 
-                            $origBlock->setBlockCollection($blockCollection);
-                        }
+                            if ($block->getTemplate()) {
+                                $newBlock->setTemplate($block->getTemplate());
+                            }
 
-                        if ($parentBlock->getMethods()) {
-                            $origBlock->setMethods(array_merge_recursive($parentBlock->getMethods(), $origBlock->getMethods()));
-                        }
+                            foreach ($block->getMethods() as $method => $values) {
+                                foreach ($values as $value) {
+                                    $newBlock->addMethod($method, $value);
+                                }
+                            }
 
-                        $parentBlock->setNoOutput(true);
-                    } else {
-                        throw new \Exception("Cannot extend block '{$origBlock->getExtends()}. Block does not exist.");
+                            $reference->removeBlock($block);
+                            $reference->removeBlock($reference->getBlock($block->getExtends()));
+                            $reference->addblock($newBlock);
+                        }
                     }
                 }
+
+                $layout->addItem($request, $request->getPath());
             }
+
+            $this->layout = $layout;
         }
 
         return $this;
-    }
-
-    /**
-     * Store blocks in their own array for easy manipulation.
-     *
-     * @param DataObject $path
-     * @param DataObject $block
-     * @return $this
-     * @throws \Exception
-     */
-    protected function storeBlocks(DataObject $path, DataObject $block)
-    {
-        if (!$block->getName()) {
-            throw new \Exception('Block element requires a name to be set');
-        }
-
-        if (array_key_exists($block->getName(), $this->blocks[$path->getPath()])) {
-            return $this;
-        }
-
-        $this->blocks[$path->getPath()][$block->getName()] = $block;
-
-        if ($block->getBlockCollection()) {
-            foreach ($block->getBlockCollection() as $child) {
-                $this->storeBlocks($path, $child);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * Parse reference object
-     *
-     * @param DataObject $reference
-     * @return $this
-     */
-    public function parseReference(DataObject $reference)
-    {
-        foreach ($reference->getBlockCollection() as $block) {
-            $this->getLayoutBlock($block)->render();
-        }
-
-        return $this;
-    }
-
-    /**
-     * @param DataObject $block
-     * @return DataObject
-     * @internal param SimpleXMLElement $element
-     *
-     */
-    public function getLayoutBlock(DataObject $block)
-    {
-        $class = explode('::', $block->getClass());
-        if (count($class) == 1) {
-            debug($block);
-        }
-        $subs  = array_map('ucfirst', explode('/', $class[1]));
-        $class = '\\' . str_replace('_', '\\', $class[0]) . '\Block\\' . implode('\\', $subs);
-
-        /** @var DataObject $blockClass */
-        $blockClass = Application::objectManager()->get($class);
-
-        $blockClass->setName($block->getName());
-        $blockClass->setNoOutput($block->getNoOutput());
-
-        if ($block->getTemplate()) {
-            $blockClass->setTemplate($block->getTemplate());
-        }
-
-        if ($block->getMethods()) {
-            foreach ($block->getMethods() as $method => $values) {
-                foreach ($values as $value) {
-                    $blockClass->$method($value);
-                }
-            }
-        }
-
-        $blockClass->setBlockCollection($block->getBlockCollection());
-
-        return $blockClass;
     }
 
     protected function collectLayoutXml()
     {
-        $finder = new Finder();
+        $requests = [];
+        $finder   = new Finder();
 
         $finder
             ->files()
@@ -236,11 +161,10 @@ class Layout
             foreach ($xml->request as $request) {
                 if (!empty($request['path'])) {
                     /**
-                     * @var DataObject $requestObject
+                     * @var Request $requestObject
                      * @var Collection $references
                      */
-                    $requestObject       = Application::objectManager()->get('\Jcode\DataObject');
-                    $referenceCollection = Application::objectManager()->get('\Jcode\DataObject\Collection');
+                    $requestObject       = Application::objectManager()->get('\Jcode\Layout\Model\Request');
 
                     $requestObject->setPath((string)$request['path']);
 
@@ -250,8 +174,8 @@ class Layout
 
                     if ($request->reference) {
                         foreach ($request->reference as $reference) {
-                            /** @var DataObject $referenceObject */
-                            $referenceObject = Application::objectManager()->get('\Jcode\DataObject');
+                            /** @var Reference $referenceObject */
+                            $referenceObject = Application::objectManager()->get('\Jcode\Layout\Model\Reference');
 
                             $referenceObject->setName((string)$reference['name']);
 
@@ -259,38 +183,34 @@ class Layout
                                 $referenceObject->setExtends((string)$reference['extends']);
                             }
 
-                            $blockCollection = Application::objectManager()->get('\Jcode\DataObject\Collection');
-
                             if ($reference->block) {
                                 foreach ($reference->block as $block) {
-                                    $blockCollection->addItem($this->convertBlockXmlToObject($block), (string)$block['name']);
+                                    $referenceObject->addblock($this->convertBlockXmlToObject($block));
                                 }
                             }
 
-                            $referenceObject->setBlockCollection($blockCollection);
-
-                            $referenceCollection->addItem($referenceObject, $referenceObject->getName());
+                            $requestObject->addReference($referenceObject);
                         }
                     }
 
-                    $requestObject->setReferenceCollection($referenceCollection);
-
-                    $this->paths[$requestObject->getPath()] = $requestObject;
+                    $requests[$requestObject->getPath()] = $requestObject;
                 }
             }
         }
+
+        return $requests;
     }
 
     /**
      * Convert SimpleXMLElement into Jcode DataObject
      *
      * @param SimpleXMLElement $block
-     * @return DataObject
+     * @return Block
      */
     protected function convertBlockXmlToObject(SimpleXMLElement $block)
     {
-        /** @var DataObject $blockObject */
-        $blockObject = Application::objectManager()->get('\Jcode\DataObject');
+        /** @var Block $blockObject */
+        $blockObject = Application::objectManager()->get('\Jcode\Layout\Model\Block');
 
         $blockObject->setName((string)$block['name']);
 
@@ -306,25 +226,16 @@ class Layout
             $blockObject->setExtends((string)$block['extends']);
         }
 
-        /** @var Collection $blockCollection */
-        $blockCollection = Application::objectManager()->get('\Jcode\DataObject\Collection');
-
         if (isset($block->block)) {
             foreach ($block->block as $child) {
-                $blockCollection->addItem($this->convertBlockXmlToObject($child), (string)$child['name']);
+                $blockObject->addChild($this->convertBlockXmlToObject($child));
             }
         }
 
-        $blockObject->setBlockCollection($blockCollection);
-
         if (isset($block->method)) {
-            $methods = [];
-
             foreach ($block->method as $method) {
-                $methods[(string)$method['name']][] = (string)$method;
+                $blockObject->addMethod((string)$method['name'], (string)$method);
             }
-
-            $blockObject->setMethods($methods);
         }
 
         return $blockObject;
