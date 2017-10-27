@@ -100,12 +100,14 @@ class Template extends DataObject
             /** @var \Jcode\Application\Config $config */
             $config                  = Application::objectManager()->get('\Jcode\Application\Config');
             list($moduleName, $path) = explode('::', $this->getTemplate());
+
+            /** @var Application\Module $module */
             $module                  = $config->getModule($moduleName);
 
             $path = array_map('ucfirst', explode('/', $path));
 
-            if (file_exists($module->getModulePath() . DS . 'View' . DS . 'Template' . DS . Application::env()->getConfig('layout') . DS . implode('/', $path))) {
-                $file = $module->getModulePath() . DS . 'View' . DS . 'Template' . DS . Application::env()->getConfig('layout') . DS . implode('/', $path);
+            if (file_exists($module->getModulePath() . DS . 'View' . DS . 'Template' . DS . Application::getConfig('layout') . DS . implode('/', $path))) {
+                $file = $module->getModulePath() . DS . 'View' . DS . 'Template' . DS . Application::getConfig('layout') . DS . implode('/', $path);
             } else {
                 $file = $module->getModulePath() . DS . 'View' . DS . 'Template' . DS . implode('/', $path);
             }
