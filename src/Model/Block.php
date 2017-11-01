@@ -163,14 +163,14 @@ class Block
         return $this->output;
     }
 
-    public function render(array $args = [])
+    public function build(array $args = [])
     {
         $class = explode('::', $this->getClass());
         $subs  = array_map('ucfirst', explode('/', $class[1]));
         $class = '\\' . str_replace('_', '\\', $class[0]) . '\Block\\' . implode('\\', $subs);
 
         /** @var Template $blockClass */
-        $blockClass = Application::objectManager()->get($class);
+        $blockClass = Application::getClass($class);
 
         $blockClass->setName($this->getName());
         $blockClass->setOutput($this->getOutput());
@@ -191,6 +191,11 @@ class Block
 
         $blockClass->setChildren($this->getChildren());
 
-        return $blockClass->render();
+        return $blockClass;
+    }
+
+    public function render(array $args = [])
+    {
+        return $this->build($args)->render();
     }
 }

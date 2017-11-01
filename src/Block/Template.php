@@ -89,6 +89,11 @@ class Template extends DataObject
         return $this;
     }
 
+    public function beforeRender()
+    {
+
+    }
+
     /**
      * @internal param $blockname
      * @internal param array $vars
@@ -97,8 +102,10 @@ class Template extends DataObject
     public function render()
     {
         if ($this->getTemplate() && $this->getOutput() == true) {
+            $this->beforeRender();
+
             /** @var \Jcode\Application\Config $config */
-            $config                  = Application::objectManager()->get('\Jcode\Application\Config');
+            $config                  = Application::getClass('\Jcode\Application\Config');
             list($moduleName, $path) = explode('::', $this->getTemplate());
 
             /** @var Application\Module $module */
@@ -139,16 +146,20 @@ class Template extends DataObject
      * @param $name
      * @param array $args
      * @return mixed|null
+     * @internal param array $args
      */
     public function getChildBlock($name, array $args = [])
     {
         if (array_key_exists($name, $this->children)) {
-            $child = $this->children[$name];
-
-            return $child->render($args);
+            return $this->children[$name]->build($args);
         }
 
         return null;
+    }
+
+    public function getChildHtml($name, array $args = [])
+    {
+        return $this->getChildBlock($name, $args)->render();
     }
 
     /**
@@ -175,11 +186,11 @@ class Template extends DataObject
     /**
      * Get helper
      *
-     * @return object|\Jcode\Resource\Helper
+     * @return object|\Jcode\Model\Helper
      * @throws \Exception
      */
     public function getHelper()
     {
-        return Application::objectManager()->get('Jcode\Model\Helper');
+        return Application::getClass('Jcode\Model\Helper');
     }
 }

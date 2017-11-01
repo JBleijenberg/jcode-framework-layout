@@ -44,7 +44,7 @@ class Messages extends Template
         $messages = [];
 
         foreach ($this->session->getRegisteredNamespaces() as $sessionClass) {
-            $session = Application::objectManager()->get($sessionClass);
+            $session = Application::getClass($sessionClass);
 
             foreach ($session->getMessages($purge) as $message) {
                 $messages[] = $message;

@@ -64,7 +64,7 @@ class Layout
     {
         if (empty($this->layout)) {
             /** @var Collection $layout */
-            $layout   = Application::objectManager()->get('\Jcode\DataObject\Collection');
+            $layout   = Application::getClass('\Jcode\DataObject\Collection');
             $requests = $this->collectLayoutXml();
 
             foreach ($this->collectLayoutXml() as $request) {
@@ -164,7 +164,7 @@ class Layout
                      * @var Request $requestObject
                      * @var Collection $references
                      */
-                    $requestObject       = Application::objectManager()->get('\Jcode\Layout\Model\Request');
+                    $requestObject       = Application::getClass('\Jcode\Layout\Model\Request');
 
                     $requestObject->setPath((string)$request['path']);
 
@@ -175,7 +175,7 @@ class Layout
                     if ($request->reference) {
                         foreach ($request->reference as $reference) {
                             /** @var Reference $referenceObject */
-                            $referenceObject = Application::objectManager()->get('\Jcode\Layout\Model\Reference');
+                            $referenceObject = Application::getClass('\Jcode\Layout\Model\Reference');
 
                             $referenceObject->setName((string)$reference['name']);
 
@@ -210,7 +210,7 @@ class Layout
     protected function convertBlockXmlToObject(SimpleXMLElement $block)
     {
         /** @var Block $blockObject */
-        $blockObject = Application::objectManager()->get('\Jcode\Layout\Model\Block');
+        $blockObject = Application::getClass('\Jcode\Layout\Model\Block');
 
         $blockObject->setName((string)$block['name']);
 
