@@ -186,7 +186,8 @@ class Block
         }
 
         foreach ($args as $key => $value) {
-            $blockClass->setData($key, $value);
+            $method = Application\Config::convertStringToMethod($key);
+            $blockClass->$method($value);
         }
 
         $blockClass->setChildren($this->getChildren());
