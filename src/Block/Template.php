@@ -186,11 +186,11 @@ class Template extends DataObject
     /**
      * Get helper
      *
-     * @return object|\Jcode\Model\Helper
+     * @return object|\Jcode\Helper
      * @throws \Exception
      */
     public function getHelper()
     {
-        return Application::getClass('Jcode\Model\Helper');
+        return Application::getClass('Jcode\Helper');
     }
 }
