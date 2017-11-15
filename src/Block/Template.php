@@ -109,23 +109,20 @@ class Template extends DataObject
             list($moduleName, $path) = explode('::', $this->getTemplate());
 
             /** @var Application\Module $module */
-            $module                  = $config->getModule($moduleName);
+            $module = $config->getModule($moduleName);
+            $path   = array_map('ucfirst', explode('/', $path));
+            $file   = sprintf('%s/View/%s/Template/%s', $module->getModulePath(), Application::getConfig('layout'), implode('/', $path));
 
-            $path = array_map('ucfirst', explode('/', $path));
 
-            if (file_exists($module->getModulePath() . DS . 'View' . DS . 'Template' . DS . Application::getConfig('layout') . DS . implode('/', $path))) {
-                $file = $module->getModulePath() . DS . 'View' . DS . 'Template' . DS . Application::getConfig('layout') . DS . implode('/', $path);
-            } else {
-                $file = $module->getModulePath() . DS . 'View' . DS . 'Template' . DS . implode('/', $path);
+            if (file_exists($file)) {
+                if (Application::showTemplateHints()) {
+                    echo sprintf('<div style="background-color: red;">%s::%s</div><br/>', get_called_class(), $file);
+                }
+
+                ob_start();
+
+                include $file;
             }
-
-            if (Application::showTemplateHints()) {
-                echo sprintf('<div style="background-color: red;">%s::%s</div><br/>', get_called_class(), $file);
-            }
-
-            ob_start();
-
-            include $file;
         }
     }
 
