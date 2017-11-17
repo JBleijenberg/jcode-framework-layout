@@ -75,7 +75,9 @@ class Layout
 
                     /** @var Reference $reference */
                     foreach ($parentRequest->getReferences() as $reference) {
-                        $request->addReference(clone $reference);
+                        if (!$request->getReference(($reference->getName()))) {
+                            $request->addReference(clone $reference);
+                        }
                     }
                 }
 

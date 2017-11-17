@@ -113,16 +113,17 @@ class Template extends DataObject
             $path   = array_map('ucfirst', explode('/', $path));
             $file   = sprintf('%s/View/%s/Template/%s', $module->getModulePath(), Application::getConfig('layout'), implode('/', $path));
 
-
-            if (file_exists($file)) {
-                if (Application::showTemplateHints()) {
-                    echo sprintf('<div style="background-color: red;">%s::%s</div><br/>', get_called_class(), $file);
-                }
-
-                ob_start();
-
-                include $file;
+            if (!file_exists($file)) {
+                $file = sprintf('%s/View/Template/%s', $module->getModulePath(), implode('/', $path));
             }
+
+            if (Application::showTemplateHints()) {
+                echo sprintf('<div style="background-color: red;">%s::%s</div><br/>', get_called_class(), $file);
+            }
+
+            ob_start();
+
+            include $file;
         }
     }
 
