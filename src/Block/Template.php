@@ -23,6 +23,7 @@
 namespace Jcode\Layout\Block;
 
 use Jcode\Application;
+use Jcode\Cache\CacheInterface;
 use Jcode\DataObject;
 use Jcode\Layout\Layout;
 use Jcode\Layout\Model\Request;
@@ -38,6 +39,8 @@ class Template extends DataObject
 
     protected $children = [];
 
+    protected $useCache = false;
+
     public function setTemplate($template)
     {
         $this->template = $template;
@@ -50,14 +53,18 @@ class Template extends DataObject
 
     public function getCacheKey()
     {
-        return md5(
+        return get_called_class() . md5(
             get_class($this) . get_called_class() . $this->template
         );
     }
 
-    public function useCache()
+    public function useCache($cache = null)
     {
-        return true;
+        if ($cache !== null) {
+            $this->useCache = (bool) $cache;
+        }
+
+        return $this->useCache;
     }
 
     public function getName()
@@ -101,29 +108,43 @@ class Template extends DataObject
      */
     public function render()
     {
-        if ($this->getTemplate() && $this->getOutput() == true) {
-            $this->beforeRender();
+        /** @var CacheInterface $cache */
+        if (($cache = Application::getConfig()->getCacheInstance()) && $cache->exists($this->getCacheKey()) && $this->useCache()) {
+            echo $cache->get($this->getCacheKey());
+        } else {
+            if ($this->getTemplate() && $this->getOutput() == true) {
+                $this->beforeRender();
 
-            /** @var \Jcode\Application\Config $config */
-            $config                  = Application::getClass('\Jcode\Application\Config');
-            list($moduleName, $path) = explode('::', $this->getTemplate());
+                /** @var \Jcode\Application\Config $config */
+                $config = Application::getClass('\Jcode\Application\Config');
+                list($moduleName, $path) = explode('::', $this->getTemplate());
 
-            /** @var Application\Module $module */
-            $module = $config->getModule($moduleName);
-            $path   = array_map('ucfirst', explode('/', $path));
-            $file   = sprintf('%s/View/%s/Template/%s', $module->getModulePath(), Application::getConfig('layout'), implode('/', $path));
+                /** @var Application\Module $module */
+                $module = $config->getModule($moduleName);
+                $path = array_map('ucfirst', explode('/', $path));
+                $file = sprintf('%s/View/%s/Template/%s', $module->getModulePath(), Application::getConfig('layout'), implode('/', $path));
 
-            if (!file_exists($file)) {
-                $file = sprintf('%s/View/Template/%s', $module->getModulePath(), implode('/', $path));
+                if (!file_exists($file)) {
+                    $file = sprintf('%s/View/Template/%s', $module->getModulePath(), implode('/', $path));
+                }
+
+                if (Application::showTemplateHints()) {
+                    echo sprintf('<div style="background-color: red;">%s::%s</div><br/>', get_called_class(), $file);
+                }
+
+                ob_start();
+
+                include $file;
+
+                /** @var CacheInterface $cache */
+                if (($cache = Application::getConfig()->getCacheInstance()) && !$cache->exists($this->getCacheKey()) && $this->useCache()) {
+                    $html = ob_get_clean();
+
+                    $cache->set($this->getCacheKey(), $html);
+
+                    echo $html;
+                }
             }
-
-            if (Application::showTemplateHints()) {
-                echo sprintf('<div style="background-color: red;">%s::%s</div><br/>', get_called_class(), $file);
-            }
-
-            ob_start();
-
-            include $file;
         }
     }
 

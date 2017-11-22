@@ -21,6 +21,7 @@
 namespace Jcode\Layout;
 
 use Jcode\Application;
+use Jcode\Cache\CacheInterface;
 use Jcode\DataObject\Collection;
 use Jcode\Layout\Model\Block;
 use Jcode\Layout\Model\Reference;
@@ -63,6 +64,13 @@ class Layout
     protected function buildLayout()
     {
         if (empty($this->layout)) {
+            /** @var CacheInterface $cache */
+            if (($cache = Application::getConfig()->getCacheInstance()) && $cache->exists('layout')) {
+                $this->layout = unserialize($cache->get('layout'));
+
+                return $this;
+            }
+
             /** @var Collection $layout */
             $layout   = Application::getClass('\Jcode\DataObject\Collection');
             $requests = $this->collectLayoutXml();
@@ -139,6 +147,11 @@ class Layout
             }
 
             $this->layout = $layout;
+
+            /** @var CacheInterface $cache */
+            if (($cache = Application::getConfig()->getCacheInstance()) && !$cache->exists('layout')) {
+                $cache->set('layout', serialize($layout));
+            }
         }
 
         return $this;
@@ -146,16 +159,16 @@ class Layout
 
     protected function collectLayoutXml()
     {
-        $requests = [];
-        $finder   = new Finder();
+        $requests   = [];
+        $finder     = new Finder();
+        $layoutName = Application::getConfig('layout');
 
         $finder
             ->files()
             ->ignoreUnreadableDirs()
             ->followLinks()
             ->name('*.xml')
-            ->depth('> 2')
-            ->in(BP . DS . 'application');
+            ->in(BP . "/application/*/*/View/{$layoutName}/Layout");
 
         foreach ($finder as $file) {
             $xml = simplexml_load_file($file->getPathname());
