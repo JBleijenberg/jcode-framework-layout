@@ -53,7 +53,7 @@ class Reference
      * @param $name
      * @return Block|null
      */
-    public function getBlock($name) :?Block
+    public function getBlock($name)
     {
         if (array_key_exists($name, $this->blocks)) {
             return $this->blocks[$name];
@@ -82,7 +82,7 @@ class Reference
         return array_key_exists($block->getName(), $this->blocks);
     }
 
-    public function getName() :?String
+    public function getName()
     {
         return $this->name;
     }
@@ -92,7 +92,7 @@ class Reference
         $this->name = $name;
     }
 
-    public function getExtends() :?String
+    public function getExtends()
     {
         return $this->extends;
     }

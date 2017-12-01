@@ -36,7 +36,7 @@ class Request
         return $this;
     }
 
-    public function getReference($name) :?Reference
+    public function getReference($name)
     {
         if (array_key_exists($name, $this->references)) {
             return $this->references[$name];
@@ -67,7 +67,7 @@ class Request
     /**
      * @return mixed
      */
-    public function getPath() :?String
+    public function getPath()
     {
         return $this->path;
     }
@@ -83,7 +83,7 @@ class Request
     /**
      * @return mixed
      */
-    public function getExtends() :?String
+    public function getExtends()
     {
         return $this->extends;
     }

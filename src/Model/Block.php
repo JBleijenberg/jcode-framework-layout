@@ -43,7 +43,7 @@ class Block
     /**
      * @return mixed
      */
-    public function getName() :?String
+    public function getName()
     {
         return $this->name;
     }
@@ -59,7 +59,7 @@ class Block
     /**
      * @return mixed
      */
-    public function getClass() :?String
+    public function getClass()
     {
         return $this->class;
     }
@@ -75,7 +75,7 @@ class Block
     /**
      * @return mixed
      */
-    public function getExtends() :?String
+    public function getExtends()
     {
         return $this->extends;
     }
@@ -91,7 +91,7 @@ class Block
     /**
      * @return mixed
      */
-    public function getTemplate() :?String
+    public function getTemplate()
     {
         return $this->template;
     }
@@ -111,7 +111,7 @@ class Block
         return $this;
     }
 
-    public function getChild($name) :?Block
+    public function getChild($name)
     {
         if (array_key_exists($name, $this->children)) {
             return $this->children[$name];
@@ -120,7 +120,7 @@ class Block
         return null;
     }
 
-    public function getChildren() :?array
+    public function getChildren()
     {
         return $this->children;
     }
@@ -141,7 +141,7 @@ class Block
         return null;
     }
 
-    public function getMethods() :?array
+    public function getMethods()
     {
         return $this->methods;
     }
