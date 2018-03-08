@@ -162,53 +162,67 @@ class Layout
         $requests   = [];
         $finder     = new Finder();
         $layoutName = Application::getConfig('layout');
+        $modules    = Application::registry('module_collection');
+        $paths      = [];
 
-        $finder
-            ->files()
-            ->ignoreUnreadableDirs()
-            ->followLinks()
-            ->name('*.xml')
-            ->in(BP . "/application/*/*/View/{$layoutName}/Layout");
+        foreach ($modules as $module) {
+            $moduleLayout = ($module->getLayout())
+                ? $module->getLayout()
+                : $layoutName;
 
-        foreach ($finder as $file) {
-            $xml = simplexml_load_file($file->getPathname());
+            if (is_dir($module->getModulePath() . "/View/{$moduleLayout}/Layout")) {
+                $paths[] = $module->getModulePath() . "/View/{$moduleLayout}/Layout";
+            }
+        }
 
-            foreach ($xml->request as $request) {
-                if (!empty($request['path'])) {
-                    /**
-                     * @var Request $requestObject
-                     * @var Collection $references
-                     */
-                    $requestObject       = Application::getClass('\Jcode\Layout\Model\Request');
+        if (!empty($paths)) {
+            $finder
+                ->files()
+                ->ignoreUnreadableDirs()
+                ->followLinks()
+                ->name('*.xml')
+                ->in($paths);
 
-                    $requestObject->setPath((string)$request['path']);
+            foreach ($finder as $file) {
+                $xml = simplexml_load_file($file->getPathname());
 
-                    if (isset($request['extends'])) {
-                        $requestObject->setExtends((string)$request['extends']);
-                    }
+                foreach ($xml->request as $request) {
+                    if (!empty($request['path'])) {
+                        /**
+                         * @var Request $requestObject
+                         * @var Collection $references
+                         */
+                        $requestObject = Application::getClass('\Jcode\Layout\Model\Request');
 
-                    if ($request->reference) {
-                        foreach ($request->reference as $reference) {
-                            /** @var Reference $referenceObject */
-                            $referenceObject = Application::getClass('\Jcode\Layout\Model\Reference');
+                        $requestObject->setPath((string)$request['path']);
 
-                            $referenceObject->setName((string)$reference['name']);
-
-                            if (isset($reference['extends'])) {
-                                $referenceObject->setExtends((string)$reference['extends']);
-                            }
-
-                            if ($reference->block) {
-                                foreach ($reference->block as $block) {
-                                    $referenceObject->addblock($this->convertBlockXmlToObject($block));
-                                }
-                            }
-
-                            $requestObject->addReference($referenceObject);
+                        if (isset($request['extends'])) {
+                            $requestObject->setExtends((string)$request['extends']);
                         }
-                    }
 
-                    $requests[$requestObject->getPath()] = $requestObject;
+                        if ($request->reference) {
+                            foreach ($request->reference as $reference) {
+                                /** @var Reference $referenceObject */
+                                $referenceObject = Application::getClass('\Jcode\Layout\Model\Reference');
+
+                                $referenceObject->setName((string)$reference['name']);
+
+                                if (isset($reference['extends'])) {
+                                    $referenceObject->setExtends((string)$reference['extends']);
+                                }
+
+                                if ($reference->block) {
+                                    foreach ($reference->block as $block) {
+                                        $referenceObject->addblock($this->convertBlockXmlToObject($block));
+                                    }
+                                }
+
+                                $requestObject->addReference($referenceObject);
+                            }
+                        }
+
+                        $requests[$requestObject->getPath()] = $requestObject;
+                    }
                 }
             }
         }

@@ -122,7 +122,11 @@ class Template extends DataObject
                 /** @var Application\Module $module */
                 $module = $config->getModule($moduleName);
                 $path = array_map('ucfirst', explode('/', $path));
-                $file = sprintf('%s/View/%s/Template/%s', $module->getModulePath(), Application::getConfig('layout'), implode('/', $path));
+                $layoutName = ($module->getLayout())
+                    ? $module->getLayout()
+                    : Application::getConfig('layout');
+
+                $file = sprintf('%s/View/%s/Template/%s', $module->getModulePath(), $layoutName, implode('/', $path));
 
                 if (!file_exists($file)) {
                     $file = sprintf('%s/View/Template/%s', $module->getModulePath(), implode('/', $path));
